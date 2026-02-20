@@ -1,19 +1,47 @@
+from enum import Enum
+
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Dict, Any, List
+from pydantic import BaseModel, field_validator, Field
+from typing import Dict, Any, List, Optional
 from app.services.email_topic_inference import EmailTopicInferenceService
+from app.services.inference_factory import InferenceServiceFactory
 from app.dataclasses import Email
+from app.utils.files import Topics, Emails
+from app.utils.exceptions import TopicAlreadyExistException
 
 router = APIRouter()
 
-class EmailRequest(BaseModel):
+class ClassificationStrategies(Enum):
+    TOPIC = "topic"
+    NEAREST = "nearest"
+
+class EmailClassifyRequest(BaseModel):
     subject: str
     body: str
+    strategy: ClassificationStrategies = Field(default=ClassificationStrategies.TOPIC)
 
 class EmailWithTopicRequest(BaseModel):
     subject: str
     body: str
-    topic: str
+    topic: Optional[str] = None
+
+    @field_validator("subject", "body")
+    @classmethod
+    def validate_non_empty_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("field cannot be empty")
+        return value
+
+    @field_validator("topic")
+    @classmethod
+    def validate_topic(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            raise ValueError("topic cannot be empty when provided")
+        return value
 
 class EmailClassificationResponse(BaseModel):
     predicted_topic: str
@@ -23,12 +51,25 @@ class EmailClassificationResponse(BaseModel):
 
 class EmailAddResponse(BaseModel):
     message: str
-    email_id: int
+    email_id: str
+
+@router.post("/emails", response_model=EmailAddResponse)
+async def store_email(request: EmailWithTopicRequest):
+    try:
+        emails = Emails()
+        email_id = emails.add_email(
+            subject=request.subject,
+            body=request.body,
+            topic=request.topic,
+        )
+        return EmailAddResponse(message="Email stored successfully", email_id=email_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/emails/classify", response_model=EmailClassificationResponse)
-async def classify_email(request: EmailRequest):
+async def classify_email(request: EmailClassifyRequest):
     try:
-        inference_service = EmailTopicInferenceService()
+        inference_service = InferenceServiceFactory.create(request.strategy.value)
         email = Email(subject=request.subject, body=request.body)
         result = inference_service.classify_email(email)
         
@@ -38,6 +79,8 @@ async def classify_email(request: EmailRequest):
             features=result["features"],
             available_topics=result["available_topics"]
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -47,6 +90,45 @@ async def topics():
     inference_service = EmailTopicInferenceService()
     info = inference_service.get_pipeline_info()
     return {"topics": info["available_topics"]}
+
+
+class Topic(BaseModel):
+    name: str
+    description: str
+
+    @field_validator("name")
+    @classmethod
+    def validate_single_word_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("name cannot be empty")
+        if any(char.isspace() for char in value):
+            raise ValueError("name must be a single word")
+        return value
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("description cannot be empty")
+        return value
+
+
+@router.post("/topic")
+async def create_new_topic(
+    topic: Topic
+):
+    """Add a new topic"""
+    try:
+        topics = Topics()
+        topics.add_topic(topic.name, topic.description)
+        return topic
+    except TopicAlreadyExistException as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 @router.get("/pipeline/info") 
 async def pipeline_info():

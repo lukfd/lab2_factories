@@ -17,8 +17,11 @@ class FeatureGeneratorFactory:
     def __init__(self):
         self._generators = GENERATORS
     
-    def generate_all_features(self, email: Email, 
-                            generator_names: List[str] = None) -> Dict[str, Any]:
+    def generate_all_features(
+        self,
+        email: Email,
+        generator_names: List[str] = None
+    ) -> Dict[str, Any]:
         """Generate features using multiple generators"""
         if generator_names is None:
             generator_names = list(self._generators.keys())

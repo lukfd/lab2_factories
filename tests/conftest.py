@@ -1,0 +1,1 @@
+"""Pytest shared configuration for in-process API tests."""

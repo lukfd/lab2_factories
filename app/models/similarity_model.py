@@ -1,7 +1,7 @@
 import os
 import json
 import numpy as np
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple, Optional
 from sentence_transformers import SentenceTransformer
 
 class EmailClassifierModel:
@@ -92,3 +92,52 @@ class EmailClassifierModel:
     def get_all_topics_with_descriptions(self) -> Dict[str, str]:
         """Get all topics with their descriptions"""
         return {topic: self.get_topic_description(topic) for topic in self.topics}
+
+    def predict_from_nearest_email(
+        self,
+        features: Dict[str, Any],
+        labeled_emails: List[Dict[str, str]],
+    ) -> Tuple[Optional[str], float]:
+        """Predict topic using the most similar stored labeled email."""
+        email_embedding = features.get("email_embeddings_average_embedding", None)
+        if email_embedding is None:
+            return None, 0.0
+
+        if isinstance(email_embedding, list):
+            email_embedding = np.array(email_embedding)
+
+        best_topic: Optional[str] = None
+        best_similarity = -1.0
+
+        for stored_email in labeled_emails:
+            subject = stored_email.get("subject", "")
+            body = stored_email.get("body", "")
+            topic = stored_email.get("topic")
+
+            if not topic:
+                continue
+
+            stored_text = f"{subject} {body}".strip()
+            if not stored_text:
+                continue
+
+            stored_embedding = self.model.encode(stored_text, convert_to_numpy=True)
+
+            dot_product = np.dot(email_embedding, stored_embedding)
+            email_norm = np.linalg.norm(email_embedding)
+            stored_norm = np.linalg.norm(stored_embedding)
+
+            if email_norm == 0 or stored_norm == 0:
+                similarity = 0.0
+            else:
+                cosine_similarity = dot_product / (email_norm * stored_norm)
+                similarity = float((cosine_similarity + 1) / 2)
+
+            if similarity > best_similarity:
+                best_similarity = similarity
+                best_topic = topic
+
+        if best_topic is None:
+            return None, 0.0
+
+        return best_topic, float(best_similarity)
