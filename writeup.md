@@ -2,6 +2,8 @@
 
 By Luca Comba
 
+The repository can be found at [https://github.com/lukfd/lab2_factories](https://github.com/lukfd/lab2_factories)
+
 To make it easier I created a Enum for all the classification strategies. I have then created a new Topic pydantic class. I have created a utility folder where I could store shared Exception classes and a utility library for reading and modifying any json file under the data directory.
 
 I have then created a new `EmailSimilarityInferenceService` to inferr the similarity based on stored emails, and created a `InferenceServiceFactory` to enable a switch between the two services (similarity vs topic) based on the strategy selected.
