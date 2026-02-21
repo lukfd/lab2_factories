@@ -20,9 +20,9 @@ This enpoint now stores a new email in the `data/emails.json`. The endpoint also
 
 This endpoint now classifies an email using a selectable strategy. The strategies can be `topic` (default), which compares the input email against topic descriptions, or `nearest` to finds the most similar labeled stored email and uses its topic.
 
-- `POST /topic` 
+- `POST /topic`
 
-This endpoint is for adding a new topic. It takes a `name`, `description` as a json body request and saves it into the correct `topic_keywords.json` file
+This endpoint is for adding a new topic. It takes a `name`, `description` as a json body request and saves it into the correct `topic_keywords.json` file.
 
 # New Class Inference
 
@@ -44,5 +44,10 @@ To test the classification based on the `nearest` strategy, I have writted an em
 
 The `test_classify_output.txt` file contains all of the API responses and demonstrates the results of the classification.
 
+# Screenshots
 
+![S1](s1.png)
 
+![S2](s2.png)
+
+![S3](s3.png)
