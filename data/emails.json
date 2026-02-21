@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": "6f921eb2-6b9d-4c44-b916-8b508500eeee",
+    "subject": "Match day lineup confirmed",
+    "body": "The team lineup is finalized and training starts at 6pm",
+    "topic": "sport"
+  },
+  {
+    "id": "dd6410af-7cce-4815-a9d5-4a00dcc3a30f",
+    "subject": "Weekend plan",
+    "body": "Let's decide where to go this weekend",
+    "topic": "personal"
+  }
+]

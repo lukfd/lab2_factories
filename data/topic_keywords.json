@@ -13,5 +13,8 @@
   },
   "support": {
     "description": "Customer support, help requests, and technical issues"
+  },
+  "sport": {
+    "description": "Sports related emails including games, training, scores, and team updates"
   }
 }
